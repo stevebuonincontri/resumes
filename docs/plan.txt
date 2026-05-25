@@ -17,14 +17,14 @@ No intermediate HTML file is saved. Only a PDF is produced.
 
 INPUT/OUTPUT CONVENTION
 -----------------------
-Input folder:  input/
+Input folder:  input_files/
   source.pdf   — Destination/primary resume (formatting is preserved)
   input.pdf    — Donor/secondary resume (missing content is pulled from here)
 
 Output folder: output_files/
   resume-merge-YYYY-MM-DD.pdf   — Merged PDF (e.g. resume-merge-2026-05-25.pdf)
 
-The originals in input/ are never modified.
+The originals in input_files/ are never modified.
 
 Legacy input folder (preserved, not used by pipeline):
   input_files/   — original input PDFs
@@ -174,8 +174,7 @@ resumes/
                                      debugging of each pipeline stage
   docs/
     plan.txt                         This file
-  input/                             Create this folder; place source.pdf and input.pdf here
-  input_files/                       Legacy input folder (preserved, not tracked)
+  input_files/                       Input PDFs (source.pdf and input.pdf)
   templates/                         CSS/layout template (resume_merged.html)
   output_files/                      Generated PDFs written here
 
@@ -187,8 +186,8 @@ Via slash command (Claude Code):
 
 Via command line:
   python3 src/merge_resumes.py \
-    --source input/source.pdf \
-    --input  input/input.pdf
+    --source input_files/source.pdf \
+    --input  input_files/input.pdf
 
 Via Jupyter notebook:
   jupyter notebook notebook/resume_merge.ipynb

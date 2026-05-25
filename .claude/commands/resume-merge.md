@@ -1,12 +1,12 @@
 # Resume Merge
 
-Merge two PDF resumes: pull jobs, skills, and education entries from `input/input.pdf` that are missing from `input/source.pdf`, and produce a dated PDF in `output_files/`. The source resume formatting is preserved exactly. Neither input file is modified.
+Merge two PDF resumes: pull jobs, skills, and education entries from `input_files/input.pdf` that are missing from `input_files/source.pdf`, and produce a dated PDF in `output_files/`. The source resume formatting is preserved exactly. Neither input file is modified.
 
 ## Steps
 
 1. **Check inputs exist.** Verify both files are present:
-   - `input/source.pdf` (destination — formatting is preserved)
-   - `input/input.pdf` (donor — missing content is pulled from here)
+   - `input_files/source.pdf` (destination — formatting is preserved)
+   - `input_files/input.pdf` (donor — missing content is pulled from here)
 
    If either file is missing, tell the user which file is absent and stop.
 
@@ -24,8 +24,8 @@ Merge two PDF resumes: pull jobs, skills, and education entries from `input/inpu
 3. **Run the merge pipeline.**
    ```bash
    python3 src/merge_resumes.py \
-     --source input/source.pdf \
-     --input input/input.pdf
+     --source input_files/source.pdf \
+     --input input_files/input.pdf
    ```
 
 4. **Report the result.**
@@ -43,4 +43,4 @@ A single PDF file at `output_files/resume-merge-YYYY-MM-DD.pdf`. No HTML file is
 
 - "Merge my two resumes and save the result."
 - "Update the source resume using the other input resume, keeping the source formatting and adding any missing jobs, education, or skills."
-- "Take `input/source.pdf` and enrich it with jobs and education from `input/input.pdf`."
+- "Take `input_files/source.pdf` and enrich it with jobs and education from `input_files/input.pdf`."

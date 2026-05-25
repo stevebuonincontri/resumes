@@ -31,7 +31,7 @@ resumes/
 
 ## Input Convention
 
-Create an `input/` folder and place exactly two PDFs in it before running the skill:
+Place exactly two PDFs in `input_files/` before running the skill:
 
 | Filename | Role |
 |---|---|
@@ -53,8 +53,8 @@ Claude will confirm the input files exist, run the pipeline, and report the outp
 ### Via command line
 ```bash
 python3 src/merge_resumes.py \
-  --source input/source.pdf \
-  --input input/input.pdf
+  --source input_files/source.pdf \
+  --input input_files/input.pdf
 ```
 
 ### Via Jupyter notebook (for debugging/exploration)
@@ -131,5 +131,5 @@ Variables in `.env`:
 
 ## Legacy Folders
 
-- `input_files/` — original input PDFs (preserved, not used by the new pipeline)
+- `input_files/` — input PDFs (`source.pdf` and `input.pdf`)
 - `output_files/` — destination for all generated PDFs

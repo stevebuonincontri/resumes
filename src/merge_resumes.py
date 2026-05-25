@@ -3,8 +3,8 @@ Resume merge pipeline.
 
 Usage:
     python3 src/merge_resumes.py \
-        --source input/source.pdf \
-        --input  input/input.pdf
+        --source input_files/source.pdf \
+        --input  input_files/input.pdf
 
 Output: output_files/resume-merge-YYYY-MM-DD.pdf
 """
