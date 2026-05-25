@@ -1,0 +1,204 @@
+RESUME MERGE SKILL — IMPLEMENTATION PLAN
+=========================================
+Date: 2026-05-25
+Author: Claude Code
+
+
+OVERVIEW
+--------
+This project provides a /resume-merge Claude Code slash command that merges
+two PDF resumes. It extracts text from both, uses Claude AI to identify jobs,
+skills, and education entries present in the donor resume but missing from the
+destination resume, injects the new content into the destination resume's HTML
+template, and renders a dated PDF to output_files/.
+
+No intermediate HTML file is saved. Only a PDF is produced.
+
+
+INPUT/OUTPUT CONVENTION
+-----------------------
+Input folder:  input/
+  source.pdf   — Destination/primary resume (formatting is preserved)
+  input.pdf    — Donor/secondary resume (missing content is pulled from here)
+
+Output folder: output_files/
+  resume-merge-YYYY-MM-DD.pdf   — Merged PDF (e.g. resume-merge-2026-05-25.pdf)
+
+The originals in input/ are never modified.
+
+Legacy input folder (preserved, not used by pipeline):
+  input_files/   — original input PDFs
+
+Template folder:
+  templates/     — resume_merged.html (CSS/layout template for PDF generation)
+
+Output folder:
+  output_files/  — all generated PDFs written here
+
+
+PIPELINE STEPS
+--------------
+1. EXTRACT
+   - Open source.pdf with PyMuPDF (fitz) and extract all page text
+   - Open input.pdf with PyMuPDF and extract all page text
+
+2. COMPARE (Claude API)
+   - Send destination resume text as a cached system block
+   - Send donor resume text as the user message
+   - Claude returns JSON listing:
+       missing_jobs:       jobs in donor not in destination (matched by company+dates)
+       missing_skills:     skill categories/items in donor not in destination
+       missing_education:  education entries in donor not in destination
+   - Dates are normalized to "Mon YYYY" format
+   - Jobs are sorted reverse-chronologically in the response
+
+3. BUILD HTML
+   - Load "templates/resume_merged.html" as the CSS/layout template
+   - Substitute contact info (name, location, phone, email, LinkedIn, GitHub, website)
+     from .env into the contact divs via _apply_env_contact()
+   - Inject new <div class="job"> blocks before <h2>Education</h2>
+   - Inject new <li> skill items before </ul> in the skills section
+   - Inject new <p> education entries inside <div class="edu"> before Publications
+   - HTML stays in memory — never written to disk
+
+4. RENDER PDF
+   - WeasyPrint converts the in-memory HTML to PDF
+   - WeasyPrint honors the @page CSS rules (Letter size, margins)
+   - Output path: output_files/resume-merge-YYYY-MM-DD.pdf
+
+
+DEPENDENCIES
+------------
+Already installed (no action needed):
+  anthropic    0.84.0+    — Claude API client
+  PyMuPDF      1.27+      — PDF text extraction (import as fitz)
+  Jinja2       3.1+       — available for future templating
+  reportlab    4.5+       — available as fallback PDF renderer
+
+Needs installation:
+  # macOS system libraries (required by weasyprint)
+  brew install pango cairo libffi
+
+  # Python packages
+  pip3 install weasyprint python-dotenv
+
+Verify all dependencies:
+  python3 -c "import fitz, anthropic, weasyprint; print('all ok')"
+
+
+ENVIRONMENT
+-----------
+Fill in .env in the project root (loaded automatically at startup via python-dotenv):
+  ANTHROPIC_API_KEY=sk-ant-...   (required)
+  RESUME_OWNER_NAME, RESUME_OWNER_EMAIL, RESUME_OWNER_PHONE,
+  RESUME_OWNER_LOCATION, RESUME_OWNER_WEBSITE, LINKEDIN_URL
+  GITHUB_USERNAME, GITHUB_URL, GITHUB_TOKEN, GITHUB_REPO
+
+Or export manually:
+  export ANTHROPIC_API_KEY=sk-ant-...
+
+
+CLAUDE API USAGE
+----------------
+Model:       claude-sonnet-4-6
+Max tokens:  4096
+Caching:     Both system blocks use cache_control: {"type": "ephemeral"}
+             - Block 1: task instructions (stable across all runs)
+             - Block 2: destination resume text (stable for same source.pdf)
+             Subsequent runs within 5 minutes reuse cached tokens (~90% cost reduction)
+
+JSON schema returned by Claude:
+{
+  "missing_jobs": [
+    {
+      "company":  "string",
+      "title":    "string",
+      "dates":    "string",   // normalized to "Mon YYYY - Mon YYYY"
+      "location": "string",
+      "bullets":  ["string", ...]
+    }
+  ],
+  "missing_skills": [
+    {
+      "category": "string",
+      "items":    ["string", ...]
+    }
+  ],
+  "missing_education": [
+    {
+      "degree":      "string",
+      "institution": "string",
+      "dates":       "string",
+      "details":     "string"
+    }
+  ]
+}
+
+
+KNOWN EDGE CASES
+----------------
+1. Duplicate company names across date ranges
+   Steve has multiple stints at the same companies (e.g. Centene 2022-2023
+   and Centene 2025-Present). The comparison prompt keys on company+dates
+   to treat each stint as a separate entry.
+
+2. Date format variation between PDFs
+   input.pdf may use formats like "8/25 - Present" while source.pdf uses
+   "Aug 2025 - Present". The Claude prompt normalizes all dates to Mon YYYY.
+
+3. WeasyPrint macOS system dependency
+   pango must be installed via brew before pip3 install weasyprint will work.
+   If weasyprint import fails, the script exits with a clear error message
+   showing the exact install commands.
+
+4. Skills section injection point
+   The HTMLBuilder looks for </ul> immediately before <h2>Agentic to locate
+   the skills list closing tag. If the template HTML changes structure, this
+   regex anchor may need updating.
+
+
+FILE STRUCTURE
+--------------
+resumes/
+  CLAUDE.md                          Project documentation
+  .claude/
+    settings.json                    Project-level Claude Code permissions
+    commands/
+      resume-merge.md                /resume-merge slash command definition
+  src/
+    merge_resumes.py                 Python pipeline (PDFExtractor,
+                                     ResumeComparator, HTMLBuilder,
+                                     PDFRenderer, run_merge, CLI)
+  notebook/
+    resume_merge.ipynb               10-cell Jupyter notebook for interactive
+                                     debugging of each pipeline stage
+  docs/
+    plan.txt                         This file
+  input/                             Create this folder; place source.pdf and input.pdf here
+  input_files/                       Legacy input folder (preserved, not tracked)
+  templates/                         CSS/layout template (resume_merged.html)
+  output_files/                      Generated PDFs written here
+
+
+USAGE
+-----
+Via slash command (Claude Code):
+  /resume-merge
+
+Via command line:
+  python3 src/merge_resumes.py \
+    --source input/source.pdf \
+    --input  input/input.pdf
+
+Via Jupyter notebook:
+  jupyter notebook notebook/resume_merge.ipynb
+
+
+VERIFICATION CHECKLIST
+----------------------
+[ ] python3 -c "import fitz, anthropic, weasyprint; print('ok')" passes
+[ ] Notebook Cell 5 returns valid JSON with at least one missing_jobs entry
+[ ] output_files/resume-merge-YYYY-MM-DD.pdf exists after running the script
+[ ] PDF page count is 4-6 pages
+[ ] PDF formatting matches output_files/resume_merged.pdf
+[ ] /resume-merge command runs end-to-end without unexpected permission prompts
